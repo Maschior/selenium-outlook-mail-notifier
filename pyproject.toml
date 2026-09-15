@@ -1,0 +1,19 @@
+[project]
+name = "selenium-outlook-mail-notifier"
+version = "0.1.0"
+description = "Selenium-based Outlook email notifier"
+requires-python = ">=3.10"
+dependencies = [
+    "selenium>=4.49.0",
+]
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://github.com/Maschior/selenium-outlook-mail-notifier"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["selenium_outlook_mail_notifier*"]

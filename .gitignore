@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+logging.log
+*.egg-info/
+.claude/
+
+# App-specific consumer script/notes, not part of the published package
+/main.py
+/CUMMINS_NOTES.md
