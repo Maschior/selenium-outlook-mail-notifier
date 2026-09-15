@@ -1,12 +1,21 @@
 [project]
 name = "selenium-outlook-mail-notifier"
-version = "0.1.0"
+version = "0.1.1"
 description = "Selenium-based Outlook email notifier"
 requires-python = ">=3.10"
 dependencies = [
     "selenium>=4.49.0",
 ]
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [project.optional-dependencies]
 test = [
