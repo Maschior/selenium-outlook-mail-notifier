@@ -106,6 +106,7 @@ def notify(
     cc: list[str] | None = None,
     sender_email: str | None = None,
     sender_password: str | None = None,
+    headless: bool = True,
 ) -> None:
     """Log in to Outlook Web via Selenium and send one notification email.
 
@@ -115,12 +116,15 @@ def notify(
     """
     sender_email = sender_email or os.environ["OUTLOOK_EMAIL"]
     sender_password = sender_password or os.environ["OUTLOOK_PASSWORD"]
-    recipient = recipient or os.environ.get("OUTLOOK_RECIPIENT", sender_email)
+    recipient = recipient or os.environ["OUTLOOK_RECIPIENT"]
     if cc is None:
         cc = [addr for addr in os.environ.get("OUTLOOK_CC", "").split(";") if addr]
 
     start = time.time()
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    if headless:
+        options.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=options)
     try:
         LOGGER.info("Navigating to Outlook login page...")
         driver.get("https://aka.ms/outlook")

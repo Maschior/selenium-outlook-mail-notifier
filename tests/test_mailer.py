@@ -135,7 +135,7 @@ class TestNotify:
     def test_falls_back_to_env_credentials(self, mocked_chrome, monkeypatch):
         monkeypatch.setenv("OUTLOOK_EMAIL", "env@example.com")
         monkeypatch.setenv("OUTLOOK_PASSWORD", "env-pass")
-        monkeypatch.delenv("OUTLOOK_RECIPIENT", raising=False)
+        monkeypatch.setenv("OUTLOOK_RECIPIENT", "env-recipient@example.com")
         monkeypatch.delenv("OUTLOOK_CC", raising=False)
 
         with patch("selenium_outlook_mail_notifier.mailer._input_email") as input_email, \
@@ -146,11 +146,21 @@ class TestNotify:
 
         input_email.assert_called_once_with(mocked_chrome, "env@example.com")
         input_password.assert_called_once_with(mocked_chrome, "env-pass")
-        fill_and_send.assert_called_once_with(mocked_chrome, "env@example.com", "Subject", "Body", [])
+        fill_and_send.assert_called_once_with(
+            mocked_chrome, "env-recipient@example.com", "Subject", "Body", []
+        )
 
     def test_missing_email_env_raises_key_error(self, mocked_chrome, monkeypatch):
         monkeypatch.delenv("OUTLOOK_EMAIL", raising=False)
         monkeypatch.delenv("OUTLOOK_PASSWORD", raising=False)
+
+        with pytest.raises(KeyError):
+            notify(subject="Subject", body="Body")
+
+    def test_missing_recipient_env_raises_key_error(self, mocked_chrome, monkeypatch):
+        monkeypatch.setenv("OUTLOOK_EMAIL", "env@example.com")
+        monkeypatch.setenv("OUTLOOK_PASSWORD", "env-pass")
+        monkeypatch.delenv("OUTLOOK_RECIPIENT", raising=False)
 
         with pytest.raises(KeyError):
             notify(subject="Subject", body="Body")
