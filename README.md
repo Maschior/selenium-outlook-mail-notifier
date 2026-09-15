@@ -1,5 +1,10 @@
 # selenium-outlook-mail-notifier
 
+[![Tests](https://github.com/Maschior/selenium-outlook-mail-notifier/actions/workflows/tests.yml/badge.svg)](https://github.com/Maschior/selenium-outlook-mail-notifier/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/selenium-outlook-mail-notifier.svg)](https://pypi.org/project/selenium-outlook-mail-notifier/)
+[![Python versions](https://img.shields.io/pypi/pyversions/selenium-outlook-mail-notifier.svg)](https://pypi.org/project/selenium-outlook-mail-notifier/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Send an email through Outlook Web (outlook.office.com) by driving a real
 browser session with Selenium — useful when you don't have Microsoft Graph
 API access but still need to trigger email notifications from a script.
@@ -20,7 +25,7 @@ from selenium_outlook_mail_notifier import notify
 
 notify(
     subject="Something happened",
-    body="Triggered by my app's own logic.",
+    body="Body message",
     recipient="someone@example.com",  # optional, falls back to OUTLOOK_RECIPIENT
     cc=["other@example.com"],          # optional, falls back to OUTLOOK_CC
 )
@@ -36,6 +41,9 @@ environment variables unless you pass them explicitly:
 | `OUTLOOK_RECIPIENT` | no       | Default recipient if not passed       |
 | `OUTLOOK_CC`        | no       | `;`-separated list of CC addresses    |
 
-## License
+## Development
 
-MIT
+```bash
+pip install -e ".[test]"
+pytest
+```

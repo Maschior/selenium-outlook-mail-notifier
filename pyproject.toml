@@ -8,6 +8,11 @@ dependencies = [
 ]
 readme = "README.md"
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/Maschior/selenium-outlook-mail-notifier"
 
