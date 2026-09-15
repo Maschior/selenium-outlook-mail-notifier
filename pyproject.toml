@@ -1,6 +1,6 @@
 [project]
 name = "selenium-outlook-mail-notifier"
-version = "0.1.1"
+version = "0.1.2"
 description = "Selenium-based Outlook email notifier"
 requires-python = ">=3.10"
 dependencies = [
