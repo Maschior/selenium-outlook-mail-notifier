@@ -1,7 +1,8 @@
+from itertools import chain, repeat
 from unittest.mock import MagicMock, patch
 
 import pytest
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 from selenium_outlook_mail_notifier import ElementNotFoundError
 from selenium_outlook_mail_notifier.mailer import (
@@ -15,13 +16,41 @@ from selenium_outlook_mail_notifier.mailer import (
 
 @pytest.fixture
 def driver():
-    return MagicMock()
+    d = MagicMock()
+    # EC.element_to_be_clickable() requires is_displayed()/is_enabled() to
+    # report truthy; a bare MagicMock() fails that check (it isn't `== True`).
+    d.find_element.return_value.is_displayed.return_value = True
+    d.find_element.return_value.is_enabled.return_value = True
+    return d
+
+
+def clickable_element() -> MagicMock:
+    """A MagicMock that satisfies EC.element_to_be_clickable()."""
+    element = MagicMock()
+    element.is_displayed.return_value = True
+    element.is_enabled.return_value = True
+    return element
 
 
 @pytest.fixture(autouse=True)
 def no_sleep():
     with patch("selenium_outlook_mail_notifier.mailer.time.sleep"):
         yield
+
+
+@pytest.fixture(autouse=True)
+def fast_wait(monkeypatch):
+    """Force WebDriverWait's timeout to near-zero so tests that simulate a
+    missing element hit TimeoutException immediately instead of waiting out
+    the real 10s production timeout."""
+    import selenium_outlook_mail_notifier.mailer as mailer_module
+
+    real_wait = mailer_module.WebDriverWait
+
+    def fast_wait_factory(driver, timeout, *args, **kwargs):
+        return real_wait(driver, 0.01, *args, **kwargs)
+
+    monkeypatch.setattr(mailer_module, "WebDriverWait", fast_wait_factory)
 
 
 class TestInputEmail:
@@ -71,6 +100,27 @@ class TestOpenNewMailWindow:
 
         driver.quit.assert_called_once()
 
+    def test_retries_and_recovers_from_a_stale_element(self, driver):
+        stale_element = clickable_element()
+        stale_element.click.side_effect = StaleElementReferenceException()
+        good_element = clickable_element()
+        driver.find_element.side_effect = [stale_element, stale_element, good_element]
+
+        _open_new_mail_window(driver)
+
+        good_element.click.assert_called_once()
+        driver.quit.assert_not_called()
+
+    def test_gives_up_after_repeated_stale_element_and_raises(self, driver):
+        stale_element = clickable_element()
+        stale_element.click.side_effect = StaleElementReferenceException()
+        driver.find_element.return_value = stale_element
+
+        with pytest.raises(ElementNotFoundError):
+            _open_new_mail_window(driver)
+
+        driver.quit.assert_called_once()
+
 
 class TestFillAndSend:
     def test_fills_all_fields_and_sends(self, driver):
@@ -99,7 +149,7 @@ class TestFillAndSend:
 
     def test_missing_send_button_quits_driver_and_raises(self, driver):
         ok = MagicMock()
-        driver.find_element.side_effect = [ok, ok, ok, NoSuchElementException()]
+        driver.find_element.side_effect = chain([ok, ok, ok], repeat(NoSuchElementException()))
 
         with pytest.raises(ElementNotFoundError):
             _fill_and_send(driver, "to@example.com", "Subject", "Body", [])

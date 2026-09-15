@@ -9,6 +9,51 @@ Send an email through Outlook Web (outlook.office.com) by driving a real
 browser session with Selenium — useful when you don't have Microsoft Graph
 API access but still need to trigger email notifications from a script.
 
+## Read this before using it in anything that matters
+
+This automates a password-based login to Outlook Web through a real browser.
+It is **not** a substitute for Microsoft Graph API and should be treated as
+a last resort for environments where Graph access genuinely isn't available
+(e.g. you don't have permission to register an app/grant API permissions in
+your organization's tenant), not as a general-purpose mailer.
+
+- **It only works reliably from a fixed, known IP/environment.** Microsoft
+  treats sign-ins from a new IP or device as suspicious and can trigger
+  MFA challenges, "Is this you?" prompts, or account lockouts — none of
+  which this library handles. Run it from the same machine/server every
+  time, and expect it to break the first time you move it.
+- **It does not handle MFA, conditional access, or CAPTCHA at all.** If the
+  target account has multi-factor authentication enabled (the default for
+  most organizational accounts), `notify()` will fail. This only works
+  against accounts with a plain username/password login flow.
+- **Outlook Web's UI is not a stable API surface — Microsoft can change
+  the page elements this library depends on at any time, without notice.**
+  Every selector (`aria-label`, element id) here is scraped from the live
+  page as it exists today; a Microsoft UI update can rename or restructure
+  any of them and break the corresponding step.
+  - By default, `notify()` logs every step it takes (navigating, filling
+    each field, sending) and, if a step fails, which selector it was
+    looking for when it broke — that's how you find out *which internal
+    function* (`_input_email`, `_input_password`, `_open_new_mail_window`,
+    or `_fill_and_send`) needs updating. Configure Python's `logging`
+    module (e.g. `logging.basicConfig(level=logging.INFO)`) to see it. If
+    you don't want that output, pass `enable_logging=False` to `notify()`
+    to silence it for that call.
+  - If you hit an `ElementNotFoundError`, that's a broken selector, not a
+    bug you need to work around yourself — please open a pull request
+    (or an issue if you can't fix it) pointing at the failing selector so
+    it gets fixed for everyone.
+  - Failures still raise `ElementNotFoundError` regardless of the logging
+    setting, so a caller can react to them (retry, alert, etc.) even with
+    `enable_logging=False`.
+- **Passing tests do not mean the live flow works.** The test suite mocks
+  the Selenium driver — it verifies the code calls the right selectors in
+  the right order, not that Outlook Web's real page still matches those
+  selectors. There is no automated end-to-end check against the live
+  site (doing so safely in CI, with real credentials and a stable IP,
+  isn't practical). Before relying on a new release, do a manual smoke
+  test with `headless=False` against a real account.
+
 ## Install
 
 ```bash
@@ -29,6 +74,7 @@ notify(
     recipient="someone@example.com",  # optional, falls back to OUTLOOK_RECIPIENT
     cc=["other@example.com"],          # optional, falls back to OUTLOOK_CC
     headless=True,                     # optional, defaults to True
+    enable_logging=True,               # optional, defaults to True
 )
 ```
 
@@ -46,9 +92,15 @@ are all required — one of the two must be provided or `notify()` raises a
 | `OUTLOOK_RECIPIENT` | yes      | Recipient address (if `recipient` isn't passed to `notify()`) |
 | `OUTLOOK_CC`        | no       | `;`-separated list of CC addresses      |
 
-`notify()` also accepts a `headless` keyword argument (default `True`) that
-controls whether Chrome runs headless (`--headless=new`) or with a visible
-window, which is useful for debugging selector issues.
+`notify()` also accepts:
+
+- `headless` (default `True`): controls whether Chrome runs headless
+  (`--headless=new`) or with a visible window, which is useful for
+  debugging selector issues.
+- `enable_logging` (default `True`): logs every step (see the warning
+  above) through Python's standard `logging` module. Pass `False` to
+  silence it for that call; failures still raise `ElementNotFoundError`
+  either way.
 
 ### Setting environment variables
 
