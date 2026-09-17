@@ -75,6 +75,20 @@ notify(
     cc=["other@example.com"],          # optional, falls back to OUTLOOK_CC
     headless=True,                     # optional, defaults to True
     enable_logging=True,               # optional, defaults to True
+    html_body=False,                   # optional, defaults to False
+)
+```
+
+The body is sent as plain text by default. To send formatted content, pass
+`html_body=True`; the value of `body` is then inserted as HTML in the Outlook
+message body:
+
+```python
+notify(
+    subject="A formatted notification",
+    body="<h1>Finished</h1><p>The job completed successfully.</p>",
+    recipient="someone@example.com",
+    html_body=True,
 )
 ```
 
@@ -101,6 +115,9 @@ are all required — one of the two must be provided or `notify()` raises a
   above) through Python's standard `logging` module. Pass `False` to
   silence it for that call; failures still raise `ElementNotFoundError`
   either way.
+- `html_body` (default `False`): when `True`, inserts `body` as HTML instead
+  of typing it as plain text. The caller is responsible for providing valid
+  HTML.
 
 ### Setting environment variables
 

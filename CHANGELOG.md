@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added optional HTML body support through `notify(..., html_body=True)`,
+  while preserving plain-text bodies by default.
+
 ## 0.1.3
 
 - `notify()` now requires a recipient (`recipient` argument or
