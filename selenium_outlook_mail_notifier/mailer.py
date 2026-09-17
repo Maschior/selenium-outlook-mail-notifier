@@ -99,12 +99,24 @@ def _open_new_mail_window(driver: webdriver.Chrome) -> None:
     )
 
 
+def _insert_html(element: WebElement, html_body: str) -> None:
+    element.parent.execute_script(
+        """
+        arguments[0].innerHTML = arguments[1];
+        arguments[0].dispatchEvent(new InputEvent('input', { bubbles: true }));
+        """,
+        element,
+        html_body,
+    )
+
+
 def _fill_and_send(
     driver: webdriver.Chrome,
     recipient: str,
     subject: str,
-    body_text: str,
     cc: list[str],
+    body_text: str | None = None,
+    body_html: str | None = None,
 ) -> None:
     LOGGER.info("Attempting to send email.")
     _wait_and_act(
@@ -122,9 +134,14 @@ def _fill_and_send(
         driver, By.XPATH, "//input[@aria-label='Subject']", lambda e: e.send_keys(subject),
         "Subject input field not found (XPATH \"//input[@aria-label='Subject']\").",
     )
-
+    if not body_html and not body_text: body_text = ""
+    body_action = (
+        (lambda e: _insert_html(e, body_html))
+        if body_html is not None
+        else (lambda e: e.send_keys(body_text))
+    )
     _wait_and_act(
-        driver, By.XPATH, "//div[@aria-label='Message body']", lambda e: e.send_keys(body_text),
+        driver, By.XPATH, "//div[@aria-label='Message body']", body_action,
         "Body input field not found (XPATH \"//div[@aria-label='Message body']\").",
     )
 
@@ -138,6 +155,7 @@ def _fill_and_send(
 def notify(
     subject: str,
     body: str,
+    html_body: bool = False,
     recipient: str | None = None,
     cc: list[str] | None = None,
     sender_email: str | None = None,
@@ -177,8 +195,22 @@ def notify(
             _input_password(driver, sender_password)
 
             _open_new_mail_window(driver)
-            _fill_and_send(driver, recipient, subject, body, cc)
-
+            if html_body:
+                _fill_and_send(
+                    driver=driver,
+                    recipient=recipient,
+                    subject=subject,
+                    body_html=body,
+                    cc=cc
+                )
+            else:
+                _fill_and_send(
+                    driver=driver,
+                    recipient=recipient,
+                    subject=subject,
+                    body_text=body,
+                    cc=cc
+                )
             LOGGER.info("Email probably sent successfully (sent items not checked).")
         finally:
             driver.quit()

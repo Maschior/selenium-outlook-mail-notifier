@@ -124,7 +124,13 @@ class TestOpenNewMailWindow:
 
 class TestFillAndSend:
     def test_fills_all_fields_and_sends(self, driver):
-        _fill_and_send(driver, "to@example.com", "Subject", "Body", ["cc@example.com"])
+        _fill_and_send(
+            driver,
+            "to@example.com",
+            "Subject",
+            cc=["cc@example.com"],
+            body_text="Body",
+        )
 
         elements = driver.find_element.return_value
         elements.send_keys.assert_any_call("to@example.com")
@@ -133,8 +139,31 @@ class TestFillAndSend:
         elements.send_keys.assert_any_call("Body")
         elements.click.assert_called_once()
 
+    def test_inserts_html_body_with_script(self, driver):
+        html = "<strong>Body</strong>"
+
+        _fill_and_send(
+            driver,
+            "to@example.com",
+            "Subject",
+            cc=[],
+            body_html=html,
+        )
+
+        script_call = driver.find_element.return_value.parent.execute_script.call_args
+        assert script_call.args[2] == html
+        assert "Body" not in [
+            call.args[0] for call in driver.find_element.return_value.send_keys.call_args_list
+        ]
+
     def test_skips_cc_when_empty(self, driver):
-        _fill_and_send(driver, "to@example.com", "Subject", "Body", [])
+        _fill_and_send(
+            driver,
+            "to@example.com",
+            "Subject",
+            cc=[],
+            body_text="Body",
+        )
 
         calls = [c.args[0] for c in driver.find_element.call_args_list]
         assert "//div[@aria-label='Cc']" not in calls
@@ -143,7 +172,13 @@ class TestFillAndSend:
         driver.find_element.side_effect = NoSuchElementException()
 
         with pytest.raises(ElementNotFoundError):
-            _fill_and_send(driver, "to@example.com", "Subject", "Body", [])
+            _fill_and_send(
+                driver,
+                "to@example.com",
+                "Subject",
+                cc=[],
+                body_text="Body",
+            )
 
         driver.quit.assert_called_once()
 
@@ -152,7 +187,13 @@ class TestFillAndSend:
         driver.find_element.side_effect = chain([ok, ok, ok], repeat(NoSuchElementException()))
 
         with pytest.raises(ElementNotFoundError):
-            _fill_and_send(driver, "to@example.com", "Subject", "Body", [])
+            _fill_and_send(
+                driver,
+                "to@example.com",
+                "Subject",
+                cc=[],
+                body_text="Body",
+            )
 
         driver.quit.assert_called_once()
 
@@ -197,7 +238,11 @@ class TestNotify:
         input_email.assert_called_once_with(mocked_chrome, "env@example.com")
         input_password.assert_called_once_with(mocked_chrome, "env-pass")
         fill_and_send.assert_called_once_with(
-            mocked_chrome, "env-recipient@example.com", "Subject", "Body", []
+            driver=mocked_chrome,
+            recipient="env-recipient@example.com",
+            subject="Subject",
+            body_text="Body",
+            cc=[],
         )
 
     def test_missing_email_env_raises_key_error(self, mocked_chrome, monkeypatch):
@@ -227,7 +272,11 @@ class TestNotify:
             notify(subject="Subject", body="Body", recipient="to@example.com")
 
         fill_and_send.assert_called_once_with(
-            mocked_chrome, "to@example.com", "Subject", "Body", ["a@example.com", "b@example.com"]
+            driver=mocked_chrome,
+            recipient="to@example.com",
+            subject="Subject",
+            body_text="Body",
+            cc=["a@example.com", "b@example.com"],
         )
 
     def test_quits_driver_even_when_step_fails(self, mocked_chrome, monkeypatch):
